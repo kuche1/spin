@@ -45,7 +45,7 @@ MOVE_BACK=$KEY_END
 MOVE_RIGHT=$KEY_PAGE_DOWN
 MOVE_FORWARD_RIGHT=$KEY_PAGE_UP
 
-LOOK_FORWARD_PRIORITY=5
+LOOK_FORWARD_PRIORITY=0 #5
 # when this is 0 the spinbot will spin in all directions equally
 # when this is 1 it will wait 1 tick (when looking forward) before continuing to spin
 # when this is 5 it will wait 5 ticks (while looking forward) before continuing
