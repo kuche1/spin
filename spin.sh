@@ -19,8 +19,7 @@ DEACTIVATION_KEY=${NUMPAD_5}
 
 SPIN_INTERVAL=0.04
 
-INGAME_SENSITIVITY=13.4
-# TODO unused
+INGAME_SENSITIVITY=3.4
 
 FORWARD=w
 BACKWARD=s
@@ -32,17 +31,17 @@ RIGHT=d
 CLICK_ACTIVATION_KEY=$NUMPAD_7
 CLICK_DEACTIVATION_KEY=$NUMPAD_8
 
-CLICK_ON_EVERY_SPIN=0 # TODO activating this make the spinning much slower # TODO this should be fixed now
+CLICK_ON_EVERY_SPIN=0 # this might make spinning slower
 MOUSE_CLICKER_INTERVAL=0.01
 
 ########## constants
 
+# tested for sensitivity 1.0
 # -16363 is not enough (goes a bit to the right)
 # -16364 is too much (goes a bit to the left)
 PIXELS_360=-16363
-PIXELS_180=$(($PIXELS_360 / 2))
-PIXELS_90_LEFT=$(($PIXELS_360 / 4))
-PIXELS_45_LEFT=$(($PIXELS_360 / 8))
+
+PIXELS_45_LEFT=$(echo "scale=4; $PIXELS_360 / 8 / $INGAME_SENSITIVITY" | bc)
 # TODO works only on sensitivity 1.0
 
 ########## basic fncs
@@ -55,14 +54,6 @@ move_mouse(){
 	xdotool mousemove_relative -- $1 $2
 }
 
-do_180(){
-	move_mouse $PIXELS_180 0
-}
-
-do_90_left(){
-	move_mouse $PIXELS_90_LEFT 0
-}
-
 do_45_left(){
 	move_mouse $PIXELS_45_LEFT 0
 }
@@ -70,7 +61,7 @@ do_45_left(){
 click_mouse(){
 	#xdotool click 1
 	xdotool mousedown 1
-	sleep 0.01
+	sleep 0.01 # ideally this should be 0 as it would otherwise introduce delay
 	xdotool mouseup 1
 }
 
