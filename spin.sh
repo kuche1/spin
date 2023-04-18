@@ -17,8 +17,7 @@ NUMPAD_8=80
 ACTIVATION_KEY=${NUMPAD_4}
 DEACTIVATION_KEY=${NUMPAD_5}
 
-#INTERVAL=0.04
-INTERVAL=0.04
+SPIN_INTERVAL=0.04
 
 INGAME_SENSITIVITY=13.4
 # TODO unused
@@ -33,7 +32,7 @@ RIGHT=d
 CLICK_ACTIVATION_KEY=$NUMPAD_7
 CLICK_DEACTIVATION_KEY=$NUMPAD_8
 
-CLICK_ON_EVERY_SPIN=0 # TODO activating this make the spinning much slower
+CLICK_ON_EVERY_SPIN=0 # TODO activating this make the spinning much slower # TODO this should be fixed now
 MOUSE_CLICKER_INTERVAL=0.01
 
 ########## constants
@@ -45,9 +44,6 @@ PIXELS_180=$(($PIXELS_360 / 2))
 PIXELS_90_LEFT=$(($PIXELS_360 / 4))
 PIXELS_45_LEFT=$(($PIXELS_360 / 8))
 # TODO works only on sensitivity 1.0
-
-CMD_START_CLICK='start clicking'
-CMD_STOP_CLICK='stop clicking'
 
 ########## basic fncs
 
@@ -95,6 +91,12 @@ send_keyup(){
 	xdotool keyup $k
 }
 
+##### output
+
+log(){
+	>&2 echo $@
+}
+
 ########## fncs
 
 keylogger(){
@@ -105,7 +107,7 @@ keylogger(){
 	        key=$(echo $line | sed "s/[^0-9]*//g")
 	    fi
 
-	    echo "$key"
+	    echo $key
 	done
 }
 
@@ -114,143 +116,145 @@ mouse_mover(){
 	active=0
 
 	while true; do
-		read -t ${INTERVAL} -r key
+		sleep $SPIN_INTERVAL
 
-    	case "${key}" in
+		while true; do
+			read -t 0.001 -r key
+			read_ret=$?
 
-			${ACTIVATION_KEY})
-				if [ ${active} = 0 ]; then
-					active=1
-				
-					looking_at=0
-				
-					echo 'activated'
-				fi
-				;;
+			if [ $read_ret != 0 ]; then
+				break
+			fi
 
-			${DEACTIVATION_KEY})
-				if [ ${active} = 1 ]; then
-					active=0
+			case $key in
 
-					send_keyup $FORWARD
-					send_keyup $BACKWARD
-					send_keyup $LEFT
-					send_keyup $RIGHT
+				$ACTIVATION_KEY)
+					if [ $active = 0 ]; then
+						active=1
 					
-					echo 'deactivated'
-				fi
-				;;
-			
-			$CLICK_ACTIVATION_KEY)
-				echo $CMD_START_CLICK
-				;;
-
-			$CLICK_DEACTIVATION_KEY)
-				echo $CMD_STOP_CLICK
-				;;
-    	
-    		"")
-    			if [ ${active} = 1 ]; then
-
-					if [ $CLICK_ON_EVERY_SPIN = 1 ]; then
-						click_mouse
+						looking_at=0
+					
+						log 'activated'
 					fi
+					;;
 
-    				case $looking_at in
-    					0)
-    						looking_at=1
-							# ^
-							# |
-							# w
+				$DEACTIVATION_KEY)
+					if [ $active = 1 ]; then
+						active=0
 
-    						do_45_left
-							#  ^
-							# <\
-							# wd
-    						send_keydown $FORWARD
-							send_keydown $RIGHT
-    						;;
+						send_keyup $FORWARD
+						send_keyup $BACKWARD
+						send_keyup $LEFT
+						send_keyup $RIGHT
+						
+						log 'deactivated'
+					fi
+					;;
 
-    					1)
-    						looking_at=2
-							#  ^
-							# <\
-							# wd
-							send_keyup $FORWARD
+				*)
+					echo $key
+					;;
+			esac
 
-    						do_45_left
-							# <-
-							# d
-    						;;
+		done
 
-    					2)
-    						looking_at=3
-							# <-
-							# d
+		if [ $active = 0 ]; then
+			continue
+		fi
 
-    						do_45_left
-							# </
-							#  v
-							# ds
-    						send_keydown $BACKWARD
-    						;;
-    					3)
-    						looking_at=4
-							# </
-							#  v
-							# ds
-    						send_keyup $RIGHT
+		if [ $CLICK_ON_EVERY_SPIN = 1 ]; then
+			click_mouse
+		fi
 
-    						do_45_left
-							# |
-							# v
-							# d
-    						;;
-						4)
-    						looking_at=5
-							# |
-							# v
-    						do_45_left
-							# \>
-							# v
-							send_keydown $LEFT
-    						;;
-						5)
-    						looking_at=6
-							# \>
-							# v
-							send_keyup $BACKWARD
-    						do_45_left
-							# ->
-    						;;
-						6)
-    						looking_at=7
-							# ->
-    						do_45_left
-							# ^
-							# />
-							send_keydown $FORWARD
-    						;;
-						7)
-    						looking_at=0
-							# ^
-							# />
-							send_keyup $LEFT
-    						do_45_left
-							# ^
-							# |
-    						;;
-						*)
-							echo "ERROR unknown state looking_at=$looking_at"
-							;;
-    				esac
-    			fi
-    			;;
+		case $looking_at in
+			0)
+				looking_at=1
+				# ^
+				# |
+				# w
 
-			*)
-				#echo "ignored event: ${key}"
+				do_45_left
+				#  ^
+				# <\
+				# wd
+				send_keydown $FORWARD
+				send_keydown $RIGHT
 				;;
-    	esac
+
+			1)
+				looking_at=2
+				#  ^
+				# <\
+				# wd
+				send_keyup $FORWARD
+
+				do_45_left
+				# <-
+				# d
+				;;
+
+			2)
+				looking_at=3
+				# <-
+				# d
+
+				do_45_left
+				# </
+				#  v
+				# ds
+				send_keydown $BACKWARD
+				;;
+			3)
+				looking_at=4
+				# </
+				#  v
+				# ds
+				send_keyup $RIGHT
+
+				do_45_left
+				# |
+				# v
+				# d
+				;;
+			4)
+				looking_at=5
+				# |
+				# v
+				do_45_left
+				# \>
+				# v
+				send_keydown $LEFT
+				;;
+			5)
+				looking_at=6
+				# \>
+				# v
+				send_keyup $BACKWARD
+				do_45_left
+				# ->
+				;;
+			6)
+				looking_at=7
+				# ->
+				do_45_left
+				# ^
+				# />
+				send_keydown $FORWARD
+				;;
+			7)
+				looking_at=0
+				# ^
+				# />
+				send_keyup $LEFT
+				do_45_left
+				# ^
+				# |
+				;;
+			*)
+				echo "ERROR unknown state looking_at=$looking_at"
+				;;
+		esac
+
 	done
 }
 
@@ -259,32 +263,43 @@ mouse_clicker(){
 	active=0
 
 	while true; do
-		read -t $MOUSE_CLICKER_INTERVAL -r cmd
-		read_err=$?
+		sleep $MOUSE_CLICKER_INTERVAL
 
-		case $cmd in
-			$CMD_START_CLICK)
-				active=1
-				;;
-			$CMD_STOP_CLICK)
-				active=0
-				;;
-			"")
-				# TODO we might not be able to print empty lines
+		while true; do
+			read -t 0.001 -r key
+			read_ret=$?
 
-				if [ $active = 0 ]; then
-					continue
-				fi
+			if [ $read_ret != 0 ]; then
+				break
+			fi
 
-				click_mouse
-				;;
-			*)
-				echo $cmd
-				;;
-		esac
+			case $key in
+				$CLICK_ACTIVATION_KEY)
+					active=1
+					;;
+
+				$CLICK_DEACTIVATION_KEY)
+					active=0
+					;;
+
+				*)
+					echo $key
+					;;
+			esac
+		done
+
+		if [ $active = 0 ]; then
+			continue
+		fi
+
+		click_mouse
+
 	done
 }
 
 ########## main
 
-keylogger | mouse_mover | mouse_clicker
+keylogger | mouse_mover | mouse_clicker > /dev/null
+
+# read -t 0.001 -r var
+# echo var=$var ret=$?
