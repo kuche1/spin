@@ -1,0 +1,144 @@
+#! /usr/bin/env bash
+
+#set -e
+#set -o xtrace
+
+########## keys
+
+NUMPAD_4=83
+NUMPAD_5=84
+NUMPAD_7=79
+NUMPAD_8=80
+
+########## settings
+
+ACTIVATION_KEY=${NUMPAD_4}
+DEACTIVATION_KEY=${NUMPAD_5}
+
+SPEED=-130
+INTERVAL=0.01
+
+INGAME_SENSITIVITY=13.4
+# TODO unused
+
+FORWARD=w
+BACKWARD=s
+
+########## constants
+
+# -16363 is not enough (goes to the right)
+# -16364 is too much (goes to the left)
+PIXELS_360=-16363
+PIXELS_180=$(($PIXELS_360 / 2))
+PIXELS_90=$(($PIXELS_360 / 4))
+# TODO works only on sensitivity 1.0
+
+########## basic fncs
+
+##### mouse
+
+move_mouse(){
+	x=$1
+	y=$2
+	xdotool mousemove_relative -- $1 $2
+}
+
+do_180(){
+	move_mouse $PIXELS_180 0
+}
+
+do_90(){
+	move_mouse $PIXELS_90 0
+}
+
+##### keyboard
+
+send_key(){
+	k=$1
+	xdotool key $k
+}
+
+# send_key_time(){
+	# k=$1
+	# t=$2
+	# 
+# } 
+
+send_keydown(){
+	k=$1
+	xdotool keydown $k
+}
+
+send_keyup(){
+	k=$1
+	xdotool keyup $k
+}
+
+########## fncs
+
+keylogger(){
+	xinput test-xi2 --root 3 | grep -A2 --line-buffered RawKeyRelease | while read -r line;
+	do
+	    if [[ $line == *"detail"* ]];
+	    then
+	        key=$(echo $line | sed "s/[^0-9]*//g")
+	    fi
+
+	    echo "$key"
+	done
+}
+
+mouse_mover(){
+
+	active=0
+	moving_forward=1
+
+	while true; do
+		read -t ${INTERVAL} -r key
+
+    	case "${key}" in
+    		"")
+    			if [ ${active} = 1 ]; then
+    				#move_mouse ${SPEED} 0
+    				if [ $moving_forward = 1 ]; then
+						send_keydown $FORWARD
+						moving_forward=0
+						sleep 0.05
+						send_keyup $FORWARD
+						do_180
+    				else
+						send_keydown $BACKWARD
+						moving_forward=1
+						sleep 0.05
+						send_keyup $BACKWARD
+						do_180
+    				fi
+    			fi
+    			;;
+			${ACTIVATION_KEY})
+				active=1
+				echo 'activated'
+				;;
+			${DEACTIVATION_KEY})
+				active=0
+				echo 'deactivated'
+				;;
+			# ${NUMPAD_7})
+				# move_mouse $PIXELS_360 0
+				# ;;
+			# ${NUMPAD_8})
+				# move_mouse $PIXELS_180 0
+				# ;;
+			*)
+				#echo "ignored event: ${key}"
+				;;
+    	esac
+	done
+}
+
+########## main
+
+keylogger | mouse_mover
+
+#sleep 3
+#do_180
