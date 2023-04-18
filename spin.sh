@@ -23,7 +23,7 @@ NUMPAD_9=81
 
 ##### ingame settings
 
-INGAME_SENSITIVITY=3.4
+INGAME_SENSITIVITY=3.2
 
 FORWARD=w
 BACKWARD=s
@@ -78,7 +78,6 @@ PIXELS_360_SENS=0.5
 
 PIXELS_360=$(echo "scale=4; ($PIXELS_360_RAW * $PIXELS_360_SENS) / $INGAME_SENSITIVITY" | bc)
 PIXELS_45_LEFT=$(echo "scale=4; $PIXELS_360 / 8" | bc)
-# TODO works only on sensitivity 1.0
 
 ########## basic fncs
 
