@@ -5,6 +5,8 @@
 
 ########## keys
 
+NUMPAD_1=87
+NUMPAD_2=88
 NUMPAD_4=83
 NUMPAD_5=84
 NUMPAD_7=79
@@ -12,12 +14,7 @@ NUMPAD_8=80
 
 ########## settings
 
-##### spinning
-
-ACTIVATION_KEY=${NUMPAD_4}
-DEACTIVATION_KEY=${NUMPAD_5}
-
-SPIN_INTERVAL=0.04
+##### ingame settings
 
 INGAME_SENSITIVITY=3.4
 
@@ -25,6 +22,14 @@ FORWARD=w
 BACKWARD=s
 LEFT=a
 RIGHT=d
+JUMP=space
+
+##### spinning
+
+ACTIVATION_KEY=$NUMPAD_4
+DEACTIVATION_KEY=$NUMPAD_5
+
+SPIN_INTERVAL=0.04
 
 ##### shooting
 
@@ -33,6 +38,13 @@ CLICK_DEACTIVATION_KEY=$NUMPAD_8
 
 CLICK_ON_EVERY_SPIN=0 # this might make spinning slower
 MOUSE_CLICKER_INTERVAL=0.01
+
+##### jumping
+
+BUNNYHOPPER_INTERVAL=0.01
+
+BH_ACTIVATION_KEY=$NUMPAD_1
+BH_DEACTIVATION_KEY=$NUMPAD_2
 
 ########## constants
 
@@ -70,6 +82,9 @@ click_mouse(){
 send_key(){
 	k=$1
 	xdotool key $k
+	#xdotool keydown $k
+	#sleep 0.01
+	#xdotool keyup $k
 }
 
 send_keydown(){
@@ -266,11 +281,13 @@ mouse_clicker(){
 
 			case $key in
 				$CLICK_ACTIVATION_KEY)
+					log 'aimbot activated'
 					active=1
 					;;
 
 				$CLICK_DEACTIVATION_KEY)
 					active=0
+					log 'aimbot deactivated'
 					;;
 
 				*)
@@ -288,9 +305,49 @@ mouse_clicker(){
 	done
 }
 
+bunny_hopper(){
+	active=0
+
+	while true; do
+		sleep $BUNNYHOPPER_INTERVAL
+
+		while true; do
+			read -t 0.001 -r key
+			read_ret=$?
+
+			if [ $read_ret != 0 ]; then
+				break
+			fi
+
+			case $key in
+				$BH_ACTIVATION_KEY)
+					active=1
+					log 'bh activated'
+					;;
+
+				$BH_DEACTIVATION_KEY)
+					active=0
+					log 'aimbot deactivated'
+					;;
+
+				*)
+					echo $key
+					;;
+			esac
+		done
+
+		if [ $active = 0 ]; then
+			continue
+		fi
+
+		send_key $JUMP
+
+	done
+}
+
 ########## main
 
-keylogger | mouse_mover | mouse_clicker > /dev/null
+keylogger | mouse_mover | mouse_clicker | bunny_hopper > /dev/null
 
 # read -t 0.001 -r var
 # echo var=$var ret=$?
