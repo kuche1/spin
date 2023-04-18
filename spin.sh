@@ -5,12 +5,19 @@
 
 ########## keys
 
+KEY_INS=118
+KEY_HOME=110
+KEY_PAGE_UP=112
+KEY_DEL=119
+KEY_END=115
+KEY_PAGE_DOWN=117
 NUMPAD_1=87
 NUMPAD_2=88
 NUMPAD_4=83
 NUMPAD_5=84
 NUMPAD_7=79
 NUMPAD_8=80
+NUMPAD_9=81
 
 ########## settings
 
@@ -31,6 +38,18 @@ DEACTIVATION_KEY=$NUMPAD_5
 
 SPIN_INTERVAL=0.04
 
+MOVE_FORWARD=$KEY_HOME
+MOVE_FORWARD_LEFT=$KEY_INS
+MOVE_LEFT=$KEY_DEL
+MOVE_BACK=$KEY_END
+MOVE_RIGHT=$KEY_PAGE_DOWN
+MOVE_FORWARD_RIGHT=$KEY_PAGE_UP
+
+LOOK_FORWARD_PRIORITY=5
+# when this is 0 the spinbot will spin in all directions equally
+# when this is 1 it will wait 1 tick (when looking forward) before continuing to spin
+# when this is 5 it will wait 5 ticks (while looking forward) before continuing
+
 ##### shooting
 
 CLICK_ACTIVATION_KEY=$NUMPAD_7
@@ -49,11 +68,16 @@ BH_DEACTIVATION_KEY=$NUMPAD_2
 ########## constants
 
 # tested for sensitivity 1.0
-# -16363 is not enough (goes a bit to the right)
-# -16364 is too much (goes a bit to the left)
-PIXELS_360=-16363
+# -16367 goes to the right
+# -16368 goes to the left
 
-PIXELS_45_LEFT=$(echo "scale=4; $PIXELS_360 / 8 / $INGAME_SENSITIVITY" | bc)
+# -32727 a bit to the right
+# -32728 more than a bit to the left
+PIXELS_360_RAW=-32728
+PIXELS_360_SENS=0.5
+
+PIXELS_360=$(echo "scale=4; ($PIXELS_360_RAW * $PIXELS_360_SENS) / $INGAME_SENSITIVITY" | bc)
+PIXELS_45_LEFT=$(echo "scale=4; $PIXELS_360 / 8" | bc)
 # TODO works only on sensitivity 1.0
 
 ########## basic fncs
@@ -68,6 +92,21 @@ move_mouse(){
 
 do_45_left(){
 	move_mouse $PIXELS_45_LEFT 0
+}
+
+do_90_left(){
+	do_45_left
+	do_45_left
+}
+
+do_180(){
+	do_90_left
+	do_90_left
+}
+
+do_deg_left(){
+	deg=$1
+	move_mouse $(echo "scale=4; $PIXELS_360 * $deg / 360" | bc) 0
 }
 
 click_mouse(){
@@ -111,9 +150,8 @@ keylogger(){
 	    if [[ $line == *"detail"* ]];
 	    then
 	        key=$(echo $line | sed "s/[^0-9]*//g")
+			echo $key
 	    fi
-
-	    echo $key
 	done
 }
 
@@ -134,13 +172,22 @@ mouse_mover(){
 
 			case $key in
 
+				# debug
+				$NUMPAD_9)
+					do_deg_left 360
+					;;
+
 				$ACTIVATION_KEY)
 					if [ $active = 0 ]; then
 						active=1
 					
 						looking_at=0
+
+						send_keydown $FORWARD
+
+						no_spin_counter=0
 					
-						log 'activated'
+						log 'spinbot activated'
 					fi
 					;;
 
@@ -153,9 +200,38 @@ mouse_mover(){
 						send_keyup $LEFT
 						send_keyup $RIGHT
 						
-						log 'deactivated'
+						log 'spinbot deactivated'
 					fi
 					;;
+
+				$MOVE_FORWARD|$MOVE_FORWARD_LEFT|$MOVE_LEFT|$MOVE_BACK|$MOVE_RIGHT|$MOVE_FORWARD_RIGHT)
+
+					deg=0
+					case $key in
+						$MOVE_FORWARD)
+							deg=0
+							;;
+						$MOVE_FORWARD_LEFT)
+							deg=45
+							;;
+						$MOVE_LEFT)
+							deg=90
+							;;
+						$MOVE_BACK)
+							deg=180
+							;;
+						$MOVE_RIGHT)
+							deg=270
+							;;
+						$MOVE_FORWARD_RIGHT)
+							deg=315
+							;;
+					esac
+
+					do_deg_left $deg
+
+					;;
+
 
 				*)
 					echo $key
@@ -174,6 +250,13 @@ mouse_mover(){
 
 		case $looking_at in
 			0)
+				if [ $no_spin_counter -lt $LOOK_FORWARD_PRIORITY ]; then
+					no_spin_counter=$(($no_spin_counter + 1))
+					continue
+				else
+					no_spin_counter=0
+				fi
+
 				looking_at=1
 				# ^
 				# |
@@ -351,3 +434,9 @@ keylogger | mouse_mover | mouse_clicker | bunny_hopper > /dev/null
 
 # read -t 0.001 -r var
 # echo var=$var ret=$?
+
+# if [ $((RANDOM % 5)) = 0 ]; then
+# 	echo ye
+# else
+# 	echo ne
+# fi
