@@ -1,5 +1,7 @@
 #! /usr/bin/env bash
 
+# pacman -S --needed xorg-xinput
+
 #set -e
 #set -o xtrace
 
@@ -23,7 +25,7 @@ NUMPAD_9=81
 
 ##### ingame settings
 
-INGAME_SENSITIVITY=3.2
+INGAME_SENSITIVITY=3.0
 
 FORWARD=w
 BACKWARD=s
@@ -144,13 +146,23 @@ log(){
 ########## fncs
 
 keylogger(){
-	xinput test-xi2 --root 3 | grep -A2 --line-buffered RawKeyRelease | while read -r line;
+	# the commented code used to work but it no longer does
+	# this is probable due to the output of xinput being changed
+	# the old code is kept in case an older version of xinput is being used
+
+	# xinput test-xi2 --root 3 | grep -A2 --line-buffered RawKeyRelease | while read -r line;
+	# do
+	#     if [[ $line == *"detail"* ]];
+	#     then
+	#         key=$(echo $line | sed "s/[^0-9]*//g")
+	# 		echo $key
+	#     fi
+	# done
+
+	xinput test-xi2 --root 3 | grep --line-buffered detail | while read -r line;
 	do
-	    if [[ $line == *"detail"* ]];
-	    then
-	        key=$(echo $line | sed "s/[^0-9]*//g")
-			echo $key
-	    fi
+		line=$(echo "$line" | cut -d ' ' -f 2)
+		echo $line
 	done
 }
 
@@ -431,11 +443,4 @@ bunny_hopper(){
 
 keylogger | mouse_mover | mouse_clicker | bunny_hopper > /dev/null
 
-# read -t 0.001 -r var
-# echo var=$var ret=$?
-
-# if [ $((RANDOM % 5)) = 0 ]; then
-# 	echo ye
-# else
-# 	echo ne
-# fi
+# keylogger
